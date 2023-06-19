@@ -122,8 +122,6 @@ func JudgeQuestion(ctx *gin.Context) {
 		})
 		return
 	}
-	//fmt.Println(ansSlice)
-	//fmt.Printf("%v\n", ansSlice)
 	if len(ansSlice) != question.Count {
 		ctx.JSON(http.StatusOK, gin.H{
 			"code": e.InvalidParams,
@@ -157,16 +155,6 @@ func JudgeQuestion(ctx *gin.Context) {
 			}
 		}
 	}
-	err = models.UpdatePoints(tx, userID, addPoints)
-	if err != nil {
-		tx.Rollback()
-		ctx.JSON(http.StatusOK, gin.H{
-			"code": e.Error,
-			"data": nil,
-			"msg":  "add point failed",
-		})
-		return
-	}
 	err = models.IncreaseOwnPointsInRedis(userID, addPoints)
 	if err != nil {
 		tx.Rollback()
@@ -177,6 +165,16 @@ func JudgeQuestion(ctx *gin.Context) {
 		})
 		return
 	}
+	//err = models.UpdatePoints(tx, userID, addPoints)
+	//if err != nil {
+	//	tx.Rollback()
+	//	ctx.JSON(http.StatusOK, gin.H{
+	//		"code": e.Error,
+	//		"data": nil,
+	//		"msg":  "add point failed",
+	//	})
+	//	return
+	//}
 	ctx.JSON(http.StatusOK, gin.H{
 		"code": e.Success,
 		"data": addPoints,
@@ -281,30 +279,6 @@ func GetRedoProblem(ctx *gin.Context) {
 }
 
 func JudgeRedoProblem(ctx *gin.Context) {
-	//idVal, exist := ctx.Get("userid")
-	//// 下面这种情况理论是不存在，但还是需要写出处理
-	//if !exist {
-	//	ctx.JSON(http.StatusOK, gin.H{
-	//		"code": e.ErrorNotExistUser,
-	//		"data": nil,
-	//		"msg":  "用户获取出现问题",
-	//	})
-	//	return
-	//}
-	//userID := idVal.(int)
-
-	//val, exist := ctx.Get("username")
-	//// 下面这种情况理论是不存在，但还是需要写出处理
-	//if !exist {
-	//	ctx.JSON(http.StatusOK, gin.H{
-	//		"code": e.ErrorNotExistUser,
-	//		"data": nil,
-	//		"msg":  "用户获取出现问题",
-	//	})
-	//	return
-	//}
-	//username := val.(string)
-
 	answers, ansOK := ctx.GetPostFormArray("answer[]")
 	if !ansOK {
 		ctx.JSON(http.StatusOK, gin.H{

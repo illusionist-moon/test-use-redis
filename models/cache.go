@@ -31,7 +31,7 @@ func GetPointsRankFromRedis() ([]Rank, error) {
 		if err != nil {
 			return nil, err
 		}
-		err = Rdb.Set("rank", jsonData, time.Minute*5).Err()
+		err = Rdb.Set("rank", jsonData, time.Minute*1).Err()
 		if err != nil {
 			return nil, err
 		}
@@ -65,7 +65,7 @@ func GetOwnPointsFromRedisWithSave(userID int) (int, error) {
 		if err != nil {
 			return 0, err
 		}
-		err = Rdb.Set(GenerateUserPointsKeyForRead(userID), ownPoints, time.Minute*30).Err()
+		err = Rdb.Set(GenerateUserPointsKeyForRead(userID), ownPoints, time.Minute*1).Err()
 		if err != nil {
 			return 0, err
 		}
