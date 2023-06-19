@@ -134,15 +134,6 @@ func GetPointsRank(ctx *gin.Context) {
 		ownPoints int
 		err       error
 	)
-	rank, err = models.GetPointsRankFromRedis()
-	if err != nil {
-		ctx.JSON(http.StatusOK, gin.H{
-			"code": e.Error,
-			"data": nil,
-			"msg":  "积分排名拉取失败: " + err.Error(),
-		})
-		return
-	}
 
 	ownPoints, err = models.GetOwnPointsFromRedisWithSave(userID)
 	if err != nil {
@@ -150,6 +141,16 @@ func GetPointsRank(ctx *gin.Context) {
 			"code": e.Error,
 			"data": nil,
 			"msg":  "个人积分拉取失败: " + err.Error(),
+		})
+		return
+	}
+
+	rank, err = models.GetPointsRankFromRedis()
+	if err != nil {
+		ctx.JSON(http.StatusOK, gin.H{
+			"code": e.Error,
+			"data": nil,
+			"msg":  "积分排名拉取失败: " + err.Error(),
 		})
 		return
 	}

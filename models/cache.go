@@ -74,16 +74,25 @@ func GetOwnPointsFromRedisWithSave(userID int) (int, error) {
 }
 
 func IncreaseOwnPointsInRedis(userID, points int) error {
+	readKey := GenerateUserPointsKeyForRead(userID)
+	writeKey := GenerateUserPointsKeyForWrite(userID)
 	tx := Rdb.TxPipeline()
+
 	var err error
-	err = tx.IncrBy(GenerateUserPointsKeyForRead(userID), int64(points)).Err()
+	err = tx.IncrBy(readKey, int64(points)).Err()
 	if err != nil {
 		return err
 	}
-	err = tx.IncrBy(GenerateUserPointsKeyForWrite(userID), int64(points)).Err()
+	err = tx.Expire(readKey, time.Minute*1).Err()
 	if err != nil {
 		return err
 	}
+
+	err = tx.IncrBy(writeKey, int64(points)).Err()
+	if err != nil {
+		return err
+	}
+
 	_, err = tx.Exec()
 	return err
 }
