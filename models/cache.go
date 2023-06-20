@@ -77,7 +77,6 @@ func IncreaseOwnPointsInRedis(userID, addPoints int, userName string) error {
 
 	var (
 		err        error
-		nowPoints  float64
 		currPoints int
 	)
 
@@ -85,7 +84,7 @@ func IncreaseOwnPointsInRedis(userID, addPoints int, userName string) error {
 	if err != nil {
 		return err
 	}
-	err = tx.Set(readKey, currPoints+int(nowPoints), expireTime).Err()
+	err = tx.Set(readKey, currPoints+addPoints, expireTime).Err()
 	if err != nil {
 		return err
 	}
@@ -99,7 +98,6 @@ func IncreaseOwnPointsInRedis(userID, addPoints int, userName string) error {
 	}
 
 	_, err = tx.Exec()
-	fmt.Println(nowPoints)
 	return err
 }
 
