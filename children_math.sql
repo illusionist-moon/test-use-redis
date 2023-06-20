@@ -7,16 +7,13 @@ CREATE DATABASE children_math_redis;
 USE children_math_redis;
 
 CREATE TABLE users(
-	id INT UNSIGNED PRIMARY KEY AUTO_INCREMENT, 
+	id INT UNSIGNED PRIMARY KEY AUTO_INCREMENT,
 	user_name VARCHAR(20),
 	`password` CHAR(60),
 	points INT,
 	CONSTRAINT UQ_users_name
 	UNIQUE (user_name)
 )ENGINE=INNODB DEFAULT CHARSET=utf8mb4 COLLATE utf8mb4_bin;
-
-ALTER TABLE users
-ADD INDEX idx_users_points_username(points desc, user_name asc);
 
 -- DROP TABLE problems;
 
