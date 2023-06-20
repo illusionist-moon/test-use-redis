@@ -126,18 +126,6 @@ func Logout(ctx *gin.Context) {
 }
 
 func GetPointsRank(ctx *gin.Context) {
-	idVal, exist := ctx.Get("userid")
-	// 下面这种情况理论是不存在，但还是需要写出处理
-	if !exist {
-		ctx.JSON(http.StatusOK, gin.H{
-			"code": e.ErrorNotExistUser,
-			"data": nil,
-			"msg":  "用户获取出现问题",
-		})
-		return
-	}
-	userID := idVal.(int)
-
 	nameVal, exist := ctx.Get("username")
 	// 下面这种情况理论是不存在，但还是需要写出处理
 	if !exist {
@@ -156,7 +144,7 @@ func GetPointsRank(ctx *gin.Context) {
 		err       error
 	)
 
-	ownPoints, err = models.GetOwnPointsFromRedisWithSave(userID, userName)
+	ownPoints, err = models.GetPointsFromZsetInRedis(userName)
 	if err != nil {
 		ctx.JSON(http.StatusOK, gin.H{
 			"code": e.Error,
@@ -188,18 +176,6 @@ func GetPointsRank(ctx *gin.Context) {
 }
 
 func GetUserPoints(ctx *gin.Context) {
-	idVal, exist := ctx.Get("userid")
-	// 下面这种情况理论是不存在，但还是需要写出处理
-	if !exist {
-		ctx.JSON(http.StatusOK, gin.H{
-			"code":   e.ErrorNotExistUser,
-			"points": nil,
-			"msg":    "用户获取出现问题",
-		})
-		return
-	}
-	userID := idVal.(int)
-
 	nameVal, exist := ctx.Get("username")
 	// 下面这种情况理论是不存在，但还是需要写出处理
 	if !exist {
@@ -212,7 +188,7 @@ func GetUserPoints(ctx *gin.Context) {
 	}
 	userName := nameVal.(string)
 
-	ownPoints, err := models.GetOwnPointsFromRedisWithSave(userID, userName)
+	ownPoints, err := models.GetPointsFromZsetInRedis(userName)
 	if err != nil {
 		ctx.JSON(http.StatusOK, gin.H{
 			"code":   e.Error,

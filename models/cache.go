@@ -22,7 +22,7 @@ func GetOwnPointsFromRedisWithSave(userID int, userName string) (int, error) {
 	)
 	ownPoints, err = Rdb.Get(generateUserPointsKeyForRead(userID)).Int()
 	if err != nil {
-		ownPoints, err = getPointsFromZsetInRedis(userName)
+		ownPoints, err = GetPointsFromZsetInRedis(userName)
 		if err != nil {
 			ownPoints, err = InitPointsKeysInRedis(userID, userName)
 			return ownPoints, err
@@ -63,7 +63,7 @@ func InitPointsKeysInRedis(userID int, userName string) (int, error) {
 	return points, err
 }
 
-func getPointsFromZsetInRedis(userName string) (int, error) {
+func GetPointsFromZsetInRedis(userName string) (int, error) {
 	points, err := Rdb.ZScore(userPointsZset, userName).Result()
 	if err != nil {
 		return 0, err
