@@ -76,21 +76,30 @@ func IncreaseOwnPointsInRedis(userID, addPoints int, userName string) error {
 	tx := Rdb.TxPipeline()
 
 	var (
-		err       error
-		nowPoints float64
+		err        error
+		nowPoints  float64
+		currPoints int
 	)
-	nowPoints, err = tx.ZIncrBy(userPointsZset, float64(addPoints), userName).Result()
+
+	currPoints, err = GetPointsFromZsetInRedis(userName)
+	if err != nil {
+		return err
+	}
+	err = tx.Set(readKey, currPoints+int(nowPoints), expireTime).Err()
+	if err != nil {
+		return err
+	}
+
+	err = tx.ZIncrBy(userPointsZset, float64(addPoints), userName).Err()
 	if err != nil {
 		_, err = InitPointsKeysInRedis(userID, userName)
 		if err != nil {
 			return err
 		}
 	}
-	err = tx.Set(readKey, int(nowPoints), expireTime).Err()
-	if err != nil {
-		return err
-	}
+
 	_, err = tx.Exec()
+	fmt.Println(nowPoints)
 	return err
 }
 
