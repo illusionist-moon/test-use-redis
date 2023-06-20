@@ -131,7 +131,7 @@ func JudgeQuestion(ctx *gin.Context) {
 		return
 	}
 
-	// 开启一个事务，保证错题库和积分的一致性
+	// 开启一个事务，保证错题库的一致性
 	tx := models.DB.Begin()
 	var (
 		addPoints int
@@ -165,16 +165,6 @@ func JudgeQuestion(ctx *gin.Context) {
 		})
 		return
 	}
-	//err = models.UpdatePoints(tx, userID, addPoints)
-	//if err != nil {
-	//	tx.Rollback()
-	//	ctx.JSON(http.StatusOK, gin.H{
-	//		"code": e.Error,
-	//		"data": nil,
-	//		"msg":  "add point failed",
-	//	})
-	//	return
-	//}
 	ctx.JSON(http.StatusOK, gin.H{
 		"code": e.Success,
 		"data": addPoints,
