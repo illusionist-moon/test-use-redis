@@ -31,7 +31,7 @@ func Exists(db *gorm.DB, username string) (int, string, bool) {
 	}
 }
 
-func CreateUser(db *gorm.DB, username, password string) error {
+func CreateUser(db *gorm.DB, username, password string) (int, error) {
 	user := &User{
 		UserName: username,
 		Password: password,
@@ -39,9 +39,9 @@ func CreateUser(db *gorm.DB, username, password string) error {
 	}
 	err := db.Create(user).Error
 	if err != nil {
-		return err
+		return 0, err
 	}
-	return nil
+	return user.ID, nil
 }
 
 func UpdatePoints(db *gorm.DB, userID int, points int) error {

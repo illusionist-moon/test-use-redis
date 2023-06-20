@@ -93,7 +93,8 @@ func Register(ctx *gin.Context) {
 		})
 		return
 	}
-	err = models.CreateUser(models.DB, username, hash)
+	var userID int
+	userID, err = models.CreateUser(models.DB, username, hash)
 	if err != nil {
 		ctx.JSON(http.StatusOK, gin.H{
 			"code": e.Error,
@@ -102,6 +103,14 @@ func Register(ctx *gin.Context) {
 		return
 	}
 
+	_, err = models.InitPointsKeysInRedis(userID, username)
+	if err != nil {
+		ctx.JSON(http.StatusOK, gin.H{
+			"code": e.Error,
+			"msg":  "Init Points Error: " + err.Error(),
+		})
+		return
+	}
 	ctx.JSON(http.StatusOK, gin.H{
 		"code": e.Success,
 		"msg":  e.GetMsg(e.Success),
@@ -129,13 +138,25 @@ func GetPointsRank(ctx *gin.Context) {
 	}
 	userID := idVal.(int)
 
+	nameVal, exist := ctx.Get("username")
+	// 下面这种情况理论是不存在，但还是需要写出处理
+	if !exist {
+		ctx.JSON(http.StatusOK, gin.H{
+			"code": e.ErrorNotExistUser,
+			"data": nil,
+			"msg":  "用户获取出现问题",
+		})
+		return
+	}
+	userName := nameVal.(string)
+
 	var (
 		rank      []models.Rank
 		ownPoints int
 		err       error
 	)
 
-	ownPoints, err = models.GetOwnPointsFromRedisWithSave(userID)
+	ownPoints, err = models.GetOwnPointsFromRedisWithSave(userID, userName)
 	if err != nil {
 		ctx.JSON(http.StatusOK, gin.H{
 			"code": e.Error,
@@ -179,7 +200,19 @@ func GetUserPoints(ctx *gin.Context) {
 	}
 	userID := idVal.(int)
 
-	ownPoints, err := models.GetOwnPointsFromRedisWithSave(userID)
+	nameVal, exist := ctx.Get("username")
+	// 下面这种情况理论是不存在，但还是需要写出处理
+	if !exist {
+		ctx.JSON(http.StatusOK, gin.H{
+			"code": e.ErrorNotExistUser,
+			"data": nil,
+			"msg":  "用户获取出现问题",
+		})
+		return
+	}
+	userName := nameVal.(string)
+
+	ownPoints, err := models.GetOwnPointsFromRedisWithSave(userID, userName)
 	if err != nil {
 		ctx.JSON(http.StatusOK, gin.H{
 			"code":   e.Error,

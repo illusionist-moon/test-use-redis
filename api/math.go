@@ -155,7 +155,7 @@ func JudgeQuestion(ctx *gin.Context) {
 			}
 		}
 	}
-	err = models.IncreaseOwnPointsInRedis(userID, addPoints)
+	err = models.IncreaseOwnPointsInRedis(userID, addPoints, username)
 	if err != nil {
 		tx.Rollback()
 		ctx.JSON(http.StatusOK, gin.H{
