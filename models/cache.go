@@ -8,7 +8,7 @@ import (
 
 const (
 	userPointsZset = "user:points"
-	expireTime     = time.Minute * 1
+	expireTime     = time.Minute * 10
 )
 
 func generateUserPointsKeyForRead(userID int) string {
