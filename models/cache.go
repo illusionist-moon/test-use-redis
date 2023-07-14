@@ -11,7 +11,7 @@ import (
 
 const (
 	userPointsZset       = "user:points"
-	cacheExpireTime      = time.Minute * 10
+	cacheExpireTime      = time.Minute * 5
 	emailVCodeExpireTime = time.Minute * emailverify.ExpireTime
 )
 
