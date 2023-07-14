@@ -34,7 +34,7 @@ type MailboxConf struct {
 
 func SendRegisterEmail(recipient, vCode string) error {
 	var mailConf MailboxConf
-	mailConf.Title = settings.EmailTitle
+	mailConf.Title = settings.EmailTitle + "注册认证"
 
 	//这里支持群发，只需填写多个人的邮箱即可，我这里发送人使用的是QQ邮箱，所以接收人也必须都要是
 	//QQ邮箱
@@ -86,7 +86,7 @@ func SendRegisterEmail(recipient, vCode string) error {
 
 func SendForgetPasswordEmail(recipient, vCode string) error {
 	var mailConf MailboxConf
-	mailConf.Title = settings.EmailTitle
+	mailConf.Title = settings.EmailTitle + "重置密码"
 
 	//这里支持群发，只需填写多个人的邮箱即可，我这里发送人使用的是QQ邮箱，所以接收人也必须都要是
 	//QQ邮箱
@@ -112,7 +112,7 @@ func SendForgetPasswordEmail(recipient, vCode string) error {
             尊敬的用户，您好！
         </div>
         <div style="padding: 8px 40px 8px 50px;">
-            <p>您正在通过“忘记密码”选项进行密码的重置，重置的验证码为%s,为了保证账号安全，验证码有效期为5分钟。</p>
+            <p>您正在通过“忘记密码”选项进行密码重置，重置的验证码为%s,为了保证账号安全，验证码有效期为5分钟。</p>
 			<p>如果这不是您的操作，切勿向他人泄露并及时登录您的账户查看，感谢您的理解与使用。</p>
         </div>
         <div>
