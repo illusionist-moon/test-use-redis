@@ -15,7 +15,13 @@ func InitRouter() *gin.Engine {
 
 	// 公有方法
 	r.POST("/register", api.Register)
+	r.POST("/register-vcode", api.SendRegisterVCode)
+
+	r.POST("/forget-password", api.UpdateForgetPassword)
+	r.POST("/forget-vcode", api.SendForgetPasswordVCode)
+
 	r.POST("/login", api.Login)
+	r.POST("/logout", api.Logout)
 
 	// 用户组私有
 	authUser := r.Group("/user")
@@ -27,8 +33,6 @@ func InitRouter() *gin.Engine {
 		authUser.GET("/wrong-list", api.GetWrongList)
 		authUser.GET("/wrong-redo", api.GetRedoProblem)
 		authUser.POST("/wrong-judge", api.JudgeRedoProblem)
-
-		authUser.GET("/logout", api.Logout)
 
 		authUser.GET("/rank", api.GetPointsRank)
 		authUser.GET("/points", api.GetUserPoints)

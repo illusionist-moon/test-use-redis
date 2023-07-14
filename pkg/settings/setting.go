@@ -16,6 +16,12 @@ var (
 	ReadTimeout  time.Duration
 	WriteTimeout time.Duration
 
+	EmailTitle     string
+	EmailSender    string
+	EmailSPassword string
+	EmailSMTPAddr  string
+	EmailSMTPPort  int
+
 	MysqlUser     string
 	MysqlPassword string
 	MysqlIp       string
@@ -39,10 +45,19 @@ func init() {
 	LoadServer()
 	LoadMysql()
 	LoadRedis()
+	LoadEmail()
 }
 
 func LoadBase() {
 	RunMode = cfg.Section("").Key("RUN_MODE").String()
+}
+
+func LoadEmail() {
+	EmailTitle = cfg.Section("email").Key("Title").String()
+	EmailSender = cfg.Section("email").Key("Sender").String()
+	EmailSPassword = cfg.Section("email").Key("SPassword").String()
+	EmailSMTPAddr = cfg.Section("email").Key("SMTPAddr").String()
+	EmailSMTPPort, _ = cfg.Section("email").Key("SMTPPort").Int()
 }
 
 func LoadMysql() {

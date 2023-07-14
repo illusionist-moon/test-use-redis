@@ -23,10 +23,10 @@ func init() {
 
 	newLogger := logger.New(log.New(os.Stdout, "\r\n", log.LstdFlags),
 		logger.Config{
-			SlowThreshold:             time.Second * 10, // 慢SQL阈值
-			LogLevel:                  logger.Info,      // 日志级别
-			IgnoreRecordNotFoundError: false,            // 忽略ErrRecordNotFound（记录未找到）错误
-			Colorful:                  true,             // 彩色打印
+			SlowThreshold:             time.Second * 3, // 慢SQL阈值
+			LogLevel:                  logger.Info,     // 日志级别
+			IgnoreRecordNotFoundError: false,           // 忽略ErrRecordNotFound（记录未找到）错误
+			Colorful:                  true,            // 彩色打印
 		})
 
 	DB, err = gorm.Open(mysql.Open(dsn), &gorm.Config{

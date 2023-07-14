@@ -5,18 +5,94 @@ import (
 	"ChildrenMath/pkg/e"
 	"ChildrenMath/pkg/util"
 	"ChildrenMath/pkg/validation"
+	"ChildrenMath/service/emailverify"
+	"fmt"
 	"github.com/gin-gonic/gin"
+	"math/rand"
 	"net/http"
-	"strings"
+	"time"
 )
 
-func Login(ctx *gin.Context) {
-	username := strings.TrimSpace(ctx.PostForm("username"))
-	password := ctx.PostForm("password")
+func SendRegisterVCode(ctx *gin.Context) {
+	email := ctx.PostForm("email")
 
-	verify := &validation.UserLogin{
-		UserName: username,
-		Password: password,
+	emailVerify := &validation.EmailValidator{Email: email}
+	if err := ctx.ShouldBind(emailVerify); err != nil {
+		ctx.JSON(http.StatusOK, gin.H{
+			"code": e.InvalidParams,
+			"msg":  validation.GetValidMsg(err, emailVerify),
+		})
+		return
+	}
+
+	// 判断用户是否存在
+	exists := models.Exists(models.DB, email)
+	if exists {
+		ctx.JSON(http.StatusOK, gin.H{
+			"code": e.ErrorExistUser,
+			"msg":  e.GetMsg(e.ErrorExistUser),
+		})
+		return
+	}
+
+	//产生六位数验证码
+	rnd := rand.New(rand.NewSource(time.Now().UnixNano()))
+	vCode := fmt.Sprintf("%06v", rnd.Int31n(1000000))
+
+	err := models.SaveVCodeInRedis(email, vCode)
+	if err != nil {
+		ctx.JSON(http.StatusOK, gin.H{
+			"code": e.Error,
+			"msg":  emailverify.ErrSend.Error(),
+		})
+		return
+	}
+
+	err = emailverify.SendRegisterEmail(email, vCode)
+	if err != nil {
+		ctx.JSON(http.StatusOK, gin.H{
+			"code": e.Error,
+			"msg":  err.Error(),
+		})
+		return
+	}
+
+	ctx.JSON(http.StatusOK, gin.H{
+		"code": e.Success,
+		"msg":  e.GetMsg(e.Success),
+	})
+	return
+}
+
+func Register(ctx *gin.Context) {
+	email := ctx.PostForm("email")
+	emailVerify := &validation.EmailValidator{Email: email}
+	if err := ctx.ShouldBind(emailVerify); err != nil {
+		ctx.JSON(http.StatusOK, gin.H{
+			"code": e.InvalidParams,
+			"msg":  validation.GetValidMsg(err, emailVerify),
+		})
+		return
+	}
+
+	vCode := ctx.PostForm("vcode")
+	vCodeInRedis, err := models.GetVCodeFromRedis(email)
+	if err != nil || vCode != vCodeInRedis {
+		ctx.JSON(http.StatusOK, gin.H{
+			"code": e.InvalidParams,
+			"msg":  "验证码有误",
+		})
+		return
+	}
+
+	userName := ctx.PostForm("username")
+	password := ctx.PostForm("password")
+	rePassword := ctx.PostForm("re-password")
+
+	verify := &validation.UserRegisterValidator{
+		UserName:          userName,
+		PasswordValidator: validation.PasswordValidator{Password: password},
+		RePassword:        rePassword,
 	}
 	if err := ctx.ShouldBind(verify); err != nil {
 		ctx.JSON(http.StatusOK, gin.H{
@@ -26,8 +102,59 @@ func Login(ctx *gin.Context) {
 		return
 	}
 
-	userID, getPassword, exists := models.Exists(models.DB, username)
-	if !exists {
+	hash, err := util.GetBcryptPwd(password)
+	if err != nil {
+		ctx.JSON(http.StatusOK, gin.H{
+			"code": e.Error,
+			"msg":  "用户密码加密时失败",
+		})
+		return
+	}
+	var userID int
+	userID, err = models.CreateUser(models.DB, userName, email, hash)
+	if err != nil {
+		ctx.JSON(http.StatusOK, gin.H{
+			"code": e.Error,
+			"msg":  "Create User Error: " + err.Error(),
+		})
+		return
+	}
+
+	_, err = models.InitPointsKeysInRedis(userID, userName)
+	if err != nil {
+		ctx.JSON(http.StatusOK, gin.H{
+			"code": e.Error,
+			"msg":  "Init Points Error: " + err.Error(),
+		})
+		return
+	}
+	ctx.JSON(http.StatusOK, gin.H{
+		"code": e.Success,
+		"msg":  e.GetMsg(e.Success),
+	})
+}
+
+// ------------------------------------------------------------
+
+// Login 登录
+func Login(ctx *gin.Context) {
+	email := ctx.PostForm("email")
+	password := ctx.PostForm("password")
+
+	verify := &validation.UserLoginValidator{
+		EmailValidator:    validation.EmailValidator{Email: email},
+		PasswordValidator: validation.PasswordValidator{Password: password},
+	}
+	if err := ctx.ShouldBind(verify); err != nil {
+		ctx.JSON(http.StatusOK, gin.H{
+			"code": e.InvalidParams,
+			"msg":  validation.GetValidMsg(err, verify),
+		})
+		return
+	}
+
+	userID, userName, getPassword, err := models.GetUserInfoByEmail(models.DB, email)
+	if err != nil {
 		ctx.JSON(http.StatusOK, gin.H{
 			"code": e.ErrorNotExistUser,
 			"msg":  e.GetMsg(e.ErrorNotExistUser),
@@ -43,7 +170,7 @@ func Login(ctx *gin.Context) {
 		return
 	}
 
-	token, err := util.GenerateToken(userID, username)
+	token, err := util.GenerateToken(userID, userName, email)
 	if err != nil {
 		ctx.JSON(http.StatusOK, gin.H{
 			"code": e.ErrorAuthToken,
@@ -58,56 +185,57 @@ func Login(ctx *gin.Context) {
 	})
 }
 
-func Register(ctx *gin.Context) {
-	username := ctx.PostForm("username")
-	password := ctx.PostForm("password")
-	rePassword := ctx.PostForm("re-password")
+func Logout(ctx *gin.Context) {
+	code := e.Success
+	ctx.JSON(http.StatusOK, gin.H{
+		"code": code,
+		"msg":  e.GetMsg(code),
+	})
+}
 
-	verify := &validation.UserRegister{
-		UserName:   username,
-		Password:   password,
-		RePassword: rePassword,
-	}
-	if err := ctx.ShouldBind(verify); err != nil {
+// ------------------------------------------------------------
+
+// SendForgetPasswordVCode 用于发送忘记密码时的验证码
+func SendForgetPasswordVCode(ctx *gin.Context) {
+	email := ctx.PostForm("email")
+
+	emailVerify := &validation.EmailValidator{Email: email}
+	if err := ctx.ShouldBind(emailVerify); err != nil {
 		ctx.JSON(http.StatusOK, gin.H{
 			"code": e.InvalidParams,
-			"msg":  validation.GetValidMsg(err, verify),
+			"msg":  validation.GetValidMsg(err, emailVerify),
 		})
 		return
 	}
 
-	// 判断用户是否存在
-	_, _, exists := models.Exists(models.DB, username)
-	if exists {
+	// 判断用户是否存在，如果不存在则返回假
+	exists := models.Exists(models.DB, email)
+	if !exists {
 		ctx.JSON(http.StatusOK, gin.H{
-			"code": e.ErrorExistUser,
-			"msg":  e.GetMsg(e.ErrorExistUser),
+			"code": e.ErrorNotExistUser,
+			"msg":  e.GetMsg(e.ErrorNotExistUser),
 		})
 		return
 	}
-	hash, err := util.GetBcryptPwd(password)
-	if err != nil {
-		ctx.JSON(http.StatusOK, gin.H{
-			"code": e.InvalidParams,
-			"msg":  "用户密码加密时失败",
-		})
-		return
-	}
-	var userID int
-	userID, err = models.CreateUser(models.DB, username, hash)
+
+	//产生六位数验证码
+	rnd := rand.New(rand.NewSource(time.Now().UnixNano()))
+	vCode := fmt.Sprintf("%06v", rnd.Int31n(1000000))
+
+	err := models.SaveVCodeInRedis(email, vCode)
 	if err != nil {
 		ctx.JSON(http.StatusOK, gin.H{
 			"code": e.Error,
-			"msg":  "Create User Error: " + err.Error(),
+			"msg":  emailverify.ErrSend.Error(),
 		})
 		return
 	}
 
-	_, err = models.InitPointsKeysInRedis(userID, username)
+	err = emailverify.SendForgetPasswordEmail(email, vCode)
 	if err != nil {
 		ctx.JSON(http.StatusOK, gin.H{
 			"code": e.Error,
-			"msg":  "Init Points Error: " + err.Error(),
+			"msg":  err.Error(),
 		})
 		return
 	}
@@ -117,11 +245,80 @@ func Register(ctx *gin.Context) {
 	})
 }
 
-func Logout(ctx *gin.Context) {
-	code := e.Success
+func UpdateForgetPassword(ctx *gin.Context) {
+	email := ctx.PostForm("email")
+	emailVerify := &validation.EmailValidator{Email: email}
+	if err := ctx.ShouldBind(emailVerify); err != nil {
+		ctx.JSON(http.StatusOK, gin.H{
+			"code": e.InvalidParams,
+			"msg":  validation.GetValidMsg(err, emailVerify),
+		})
+		return
+	}
+
+	vCode := ctx.PostForm("vcode")
+	vCodeInRedis, err := models.GetVCodeFromRedis(email)
+	if err != nil || vCode != vCodeInRedis {
+		ctx.JSON(http.StatusOK, gin.H{
+			"code": e.Error,
+			"msg":  emailverify.ErrEqual.Error(),
+		})
+		return
+	}
+
+	newPassword := ctx.PostForm("password")
+	rePassword := ctx.PostForm("re-password")
+
+	verify := &validation.UpdatePasswordValidator{
+		PasswordValidator: validation.PasswordValidator{Password: newPassword},
+		RePassword:        rePassword,
+	}
+	if err := ctx.ShouldBind(verify); err != nil {
+		ctx.JSON(http.StatusOK, gin.H{
+			"code": e.InvalidParams,
+			"msg":  validation.GetValidMsg(err, verify),
+		})
+		return
+	}
+
+	_, _, oldPassword, err := models.GetUserInfoByEmail(models.DB, email)
+	if err != nil {
+		ctx.JSON(http.StatusOK, gin.H{
+			"code": e.Error,
+			"msg":  "获取用户旧密码失败",
+		})
+		return
+	}
+
+	if util.ComparePwd(oldPassword, newPassword) {
+		ctx.JSON(http.StatusOK, gin.H{
+			"code": e.Error,
+			"msg":  "新密码不能与旧密码相同",
+		})
+		return
+	}
+
+	hash, err := util.GetBcryptPwd(newPassword)
+	if err != nil {
+		ctx.JSON(http.StatusOK, gin.H{
+			"code": e.Error,
+			"msg":  "新密码加密时失败",
+		})
+		return
+	}
+
+	err = models.UpdatePassword(models.DB, email, hash)
+	if err != nil {
+		ctx.JSON(http.StatusOK, gin.H{
+			"code": e.Error,
+			"msg":  "更新新密码失败",
+		})
+		return
+	}
+
 	ctx.JSON(http.StatusOK, gin.H{
-		"code": code,
-		"msg":  e.GetMsg(code),
+		"code": e.Success,
+		"msg":  e.GetMsg(e.Success),
 	})
 }
 
@@ -156,6 +353,7 @@ func GetPointsRank(ctx *gin.Context) {
 		err       error
 	)
 
+	fmt.Println(userID, userName)
 	ownPoints, err = models.GetOwnPointsFromRedisWithSave(userID, userName)
 	if err != nil {
 		ctx.JSON(http.StatusOK, gin.H{
@@ -166,7 +364,7 @@ func GetPointsRank(ctx *gin.Context) {
 		return
 	}
 
-	rank, err = models.GetPointsRankFromRedis()
+	rank, err = models.GetPointsRankByIDFromRedis()
 	if err != nil {
 		ctx.JSON(http.StatusOK, gin.H{
 			"code": e.Error,
