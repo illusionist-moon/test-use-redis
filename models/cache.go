@@ -6,7 +6,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/go-redis/redis"
-	"strconv"
 	"time"
 )
 
@@ -48,6 +47,23 @@ func GetOwnPointsFromRedisWithSave(userID int, userName string) (int, error) {
 		}
 	}
 	return ownPoints, nil
+}
+
+func GetOwnRankFromZsetInRedis(userID int, userName string) (int, error) {
+	keyByte, _ := json.Marshal(&UserInfo{
+		UserId:   userID,
+		UserName: userName,
+	})
+
+	var (
+		ownRank int64
+		err     error
+	)
+	ownRank, err = Rdb.ZRank(userPointsZset, util.Byte2Str(keyByte)).Result()
+	if err != nil {
+		return 0, nil
+	}
+	return int(ownRank + 1), nil
 }
 
 // InitPointsKeysInRedis
@@ -110,7 +126,11 @@ func IncreaseOwnPointsInRedis(userID, addPoints int, userName string) error {
 		return err
 	}
 
-	err = tx.ZIncrBy(userPointsZset, float64(addPoints), strconv.Itoa(userID)).Err()
+	keyByte, _ := json.Marshal(&UserInfo{
+		UserId:   userID,
+		UserName: userName,
+	})
+	err = tx.ZIncrBy(userPointsZset, float64(addPoints), util.Byte2Str(keyByte)).Err()
 	if err != nil {
 		_, err = InitPointsKeysInRedis(userID, userName)
 		if err != nil {
