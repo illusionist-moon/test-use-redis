@@ -144,7 +144,7 @@ func JudgeQuestion(ctx *gin.Context) {
 		if correct {
 			addPoints++
 		} else {
-			err = models.AddProblem(tx, username, op, ansSlice[i][0], ansSlice[i][1], ansSlice[i][2])
+			err = models.AddProblem(tx, userID, op, ansSlice[i][0], ansSlice[i][1], ansSlice[i][2])
 			if err != nil {
 				tx.Rollback()
 				ctx.JSON(http.StatusOK, gin.H{

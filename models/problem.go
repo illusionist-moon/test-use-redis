@@ -11,7 +11,7 @@ const (
 
 type Problem struct {
 	ID       int    `json:"id" gorm:"column:id;primary_key;auto_increment"`
-	UserId   string `json:"userid" gorm:"column:user_id"`
+	UserId   int    `json:"userid" gorm:"column:user_id"`
 	Num1     int    `json:"num1" gorm:"column:num1"`
 	Num2     int    `json:"num2" gorm:"column:num2"`
 	WrongAns int    `json:"wrong_ans" gorm:"column:wrong_ans"`
@@ -32,7 +32,7 @@ type RedoProblem struct {
 	Operator string `json:"op" gorm:"column:operator;type:char(1)"`
 }
 
-func AddProblem(db *gorm.DB, userId, op string, num1, num2, wrongAns int) error {
+func AddProblem(db *gorm.DB, userId int, op string, num1, num2, wrongAns int) error {
 	err := db.Create(&Problem{
 		UserId:   userId,
 		Num1:     num1,
