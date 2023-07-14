@@ -36,6 +36,8 @@ func InitRouter() *gin.Engine {
 
 		authUser.GET("/rank", api.GetPointsRank)
 		authUser.GET("/points", api.GetUserPoints)
+
+		authUser.POST("/change-password", api.ChangePassword)
 	}
 
 	return r

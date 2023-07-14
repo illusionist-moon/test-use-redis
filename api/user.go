@@ -426,3 +426,81 @@ func GetUserPoints(ctx *gin.Context) {
 		"msg":    e.GetMsg(e.Success),
 	})
 }
+
+func ChangePassword(ctx *gin.Context) {
+	emailVal, exist := ctx.Get("email")
+	// 下面这种情况理论是不存在，但还是需要写出处理
+	if !exist {
+		ctx.JSON(http.StatusOK, gin.H{
+			"code": e.ErrorNotExistUser,
+			"data": nil,
+			"msg":  "用户获取出现问题",
+		})
+		return
+	}
+	email := emailVal.(string)
+
+	oldPassword := ctx.PostForm("old-password")
+	newPassword := ctx.PostForm("new-password")
+	rePassword := ctx.PostForm("re-password")
+
+	verify := &validation.UpdatePasswordValidator{
+		PasswordValidator: validation.PasswordValidator{Password: newPassword},
+		RePassword:        rePassword,
+	}
+	if err := ctx.ShouldBind(verify); err != nil {
+		ctx.JSON(http.StatusOK, gin.H{
+			"code": e.InvalidParams,
+			"msg":  validation.GetValidMsg(err, verify),
+		})
+		return
+	}
+
+	_, _, oldEncryptPassword, err := models.GetUserInfoByEmail(models.DB, email)
+	if err != nil {
+		ctx.JSON(http.StatusOK, gin.H{
+			"code": e.Error,
+			"msg":  "获取用户旧密码失败",
+		})
+		return
+	}
+
+	if !util.ComparePwd(oldEncryptPassword, oldPassword) {
+		ctx.JSON(http.StatusOK, gin.H{
+			"code": e.Error,
+			"msg":  "旧密码不正确",
+		})
+		return
+	}
+
+	if oldPassword == newPassword {
+		ctx.JSON(http.StatusOK, gin.H{
+			"code": e.Error,
+			"msg":  "新密码不能与旧密码相同",
+		})
+		return
+	}
+
+	hash, err := util.GetBcryptPwd(newPassword)
+	if err != nil {
+		ctx.JSON(http.StatusOK, gin.H{
+			"code": e.Error,
+			"msg":  "新密码加密时失败",
+		})
+		return
+	}
+
+	err = models.UpdatePassword(models.DB, email, hash)
+	if err != nil {
+		ctx.JSON(http.StatusOK, gin.H{
+			"code": e.Error,
+			"msg":  "更新新密码失败",
+		})
+		return
+	}
+
+	ctx.JSON(http.StatusOK, gin.H{
+		"code": e.Success,
+		"msg":  e.GetMsg(e.Success),
+	})
+}
