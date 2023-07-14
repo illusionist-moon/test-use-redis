@@ -47,10 +47,10 @@ func AddProblem(db *gorm.DB, userId int, op string, num1, num2, wrongAns int) er
 }
 
 // GetWrongList 返回值依次为(page对应页的错题，错题的总数，错误)
-func GetWrongList(db *gorm.DB, userId string, page int) ([]WrongListItem, int64, error) {
+func GetWrongList(db *gorm.DB, userId int, page int) ([]WrongListItem, int64, error) {
 	var res []WrongListItem
 	var total int64
-	err := db.Model(&Problem{}).Omit("id", "userId").Where("user_id = ?", userId).Count(&total).Limit(WrongListOffset).Offset((page - 1) * WrongListOffset).
+	err := db.Model(&Problem{}).Omit("id", "user_id").Where("user_id = ?", userId).Count(&total).Limit(WrongListOffset).Offset((page - 1) * WrongListOffset).
 		Find(&res).Error
 	if err != nil {
 		return nil, 0, err

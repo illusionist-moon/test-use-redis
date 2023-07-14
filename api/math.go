@@ -175,7 +175,7 @@ func JudgeQuestion(ctx *gin.Context) {
 }
 
 func GetWrongList(ctx *gin.Context) {
-	val, exist := ctx.Get("username")
+	idVal, exist := ctx.Get("userid")
 	// 下面这种情况理论是不存在，但还是需要写出处理
 	if !exist {
 		ctx.JSON(http.StatusOK, gin.H{
@@ -185,7 +185,7 @@ func GetWrongList(ctx *gin.Context) {
 		})
 		return
 	}
-	username := val.(string)
+	userID := idVal.(int)
 
 	pageStr, ok := ctx.GetQuery("page")
 	if !ok {
@@ -206,7 +206,7 @@ func GetWrongList(ctx *gin.Context) {
 		return
 	}
 
-	wrongItems, total, getErr := models.GetWrongList(models.DB, username, page)
+	wrongItems, total, getErr := models.GetWrongList(models.DB, userID, page)
 	if getErr != nil {
 		ctx.JSON(http.StatusOK, gin.H{
 			"code": e.Error,
