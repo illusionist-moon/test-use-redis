@@ -10,6 +10,7 @@ import (
 func InitRouter() *gin.Engine {
 	r := gin.Default()
 	r.Use(middleware.TlsHandler(), middleware.Cors())
+	//r.Use(middleware.Cors())
 
 	gin.SetMode(settings.RunMode)
 

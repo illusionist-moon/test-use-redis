@@ -236,7 +236,16 @@ func SendForgetPasswordVCode(ctx *gin.Context) {
 	rnd := rand.New(rand.NewSource(time.Now().UnixNano()))
 	vCode := fmt.Sprintf("%06v", rnd.Int31n(1000000))
 
-	err := models.SaveVCodeInRedis(email, vCode)
+	err := emailverify.SendForgetPasswordEmail(email, vCode)
+	if err != nil {
+		ctx.JSON(http.StatusOK, gin.H{
+			"code": e.Error,
+			"msg":  err.Error(),
+		})
+		return
+	}
+
+	err = models.SaveVCodeInRedis(email, vCode)
 	if err != nil {
 		ctx.JSON(http.StatusOK, gin.H{
 			"code": e.Error,
@@ -245,14 +254,6 @@ func SendForgetPasswordVCode(ctx *gin.Context) {
 		return
 	}
 
-	err = emailverify.SendForgetPasswordEmail(email, vCode)
-	if err != nil {
-		ctx.JSON(http.StatusOK, gin.H{
-			"code": e.Error,
-			"msg":  err.Error(),
-		})
-		return
-	}
 	ctx.JSON(http.StatusOK, gin.H{
 		"code": e.Success,
 		"msg":  e.GetMsg(e.Success),

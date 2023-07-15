@@ -59,7 +59,7 @@ func GetOwnRankFromZsetInRedis(userID int, userName string) (int, error) {
 		ownRank int64
 		err     error
 	)
-	ownRank, err = Rdb.ZRank(userPointsZset, util.Byte2Str(keyByte)).Result()
+	ownRank, err = Rdb.ZRevRank(userPointsZset, util.Byte2Str(keyByte)).Result()
 	if err != nil {
 		return 0, nil
 	}
