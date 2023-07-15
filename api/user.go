@@ -148,6 +148,7 @@ func Login(ctx *gin.Context) {
 	if err := ctx.ShouldBind(verify); err != nil {
 		ctx.JSON(http.StatusOK, gin.H{
 			"code": e.InvalidParams,
+			"info": nil,
 			"msg":  validation.GetValidMsg(err, verify),
 		})
 		return
@@ -157,6 +158,7 @@ func Login(ctx *gin.Context) {
 	if err != nil {
 		ctx.JSON(http.StatusOK, gin.H{
 			"code": e.ErrorNotExistUser,
+			"info": nil,
 			"msg":  e.GetMsg(e.ErrorNotExistUser),
 		})
 		return
@@ -165,6 +167,7 @@ func Login(ctx *gin.Context) {
 	if !util.ComparePwd(getPassword, password) {
 		ctx.JSON(http.StatusOK, gin.H{
 			"code": e.ErrorIncorrectPwd,
+			"info": nil,
 			"msg":  e.GetMsg(e.ErrorIncorrectPwd),
 		})
 		return
@@ -174,12 +177,23 @@ func Login(ctx *gin.Context) {
 	if err != nil {
 		ctx.JSON(http.StatusOK, gin.H{
 			"code": e.ErrorAuthToken,
+			"info": nil,
 			"msg":  e.GetMsg(e.ErrorAuthToken),
 		})
 		return
 	}
+	info := struct {
+		Id       int    `json:"userid"`
+		Email    string `json:"email"`
+		UserName string `json:"username"`
+	}{
+		Id:       userID,
+		Email:    email,
+		UserName: userName,
+	}
 	ctx.JSON(http.StatusOK, gin.H{
 		"code":  e.Success,
+		"info":  info,
 		"msg":   e.GetMsg(e.Success),
 		"token": token,
 	})
@@ -518,9 +532,9 @@ func ChangeUserName(ctx *gin.Context) {
 	// 下面这种情况理论是不存在，但还是需要写出处理
 	if !exist {
 		ctx.JSON(http.StatusOK, gin.H{
-			"code": e.ErrorNotExistUser,
-			"data": nil,
-			"msg":  "用户获取出现问题",
+			"code":     e.ErrorNotExistUser,
+			"msg":      "用户获取出现问题",
+			"username": nil,
 		})
 		return
 	}
@@ -529,9 +543,9 @@ func ChangeUserName(ctx *gin.Context) {
 	userName, err := models.GetUserNameByID(models.DB, userID)
 	if err != nil {
 		ctx.JSON(http.StatusOK, gin.H{
-			"code": e.ErrorNotExistUser,
-			"data": nil,
-			"msg":  "用户名获取失败",
+			"code":     e.ErrorNotExistUser,
+			"msg":      "用户名获取失败",
+			"username": nil,
 		})
 		return
 	}
@@ -543,8 +557,9 @@ func ChangeUserName(ctx *gin.Context) {
 	}
 	if err := ctx.ShouldBind(verify); err != nil {
 		ctx.JSON(http.StatusOK, gin.H{
-			"code": e.InvalidParams,
-			"msg":  validation.GetValidMsg(err, verify),
+			"code":     e.InvalidParams,
+			"msg":      validation.GetValidMsg(err, verify),
+			"username": nil,
 		})
 		return
 	}
@@ -552,8 +567,9 @@ func ChangeUserName(ctx *gin.Context) {
 	err = models.UpdateUserName(models.DB, userID, newUserName)
 	if err != nil {
 		ctx.JSON(http.StatusOK, gin.H{
-			"code": e.Error,
-			"msg":  "更新用户名失败",
+			"code":     e.Error,
+			"msg":      "更新用户名失败",
+			"username": nil,
 		})
 		return
 	}
@@ -562,14 +578,16 @@ func ChangeUserName(ctx *gin.Context) {
 	err = models.UpdateUserNameInZsetInRedis(userID, userName, newUserName)
 	if err != nil {
 		ctx.JSON(http.StatusOK, gin.H{
-			"code": e.Error,
-			"msg":  "更新用户名缓存失败",
+			"code":     e.Error,
+			"msg":      "更新用户名缓存失败",
+			"username": nil,
 		})
 		return
 	}
 
 	ctx.JSON(http.StatusOK, gin.H{
-		"code": e.Success,
-		"msg":  e.GetMsg(e.Success),
+		"code":     e.Success,
+		"msg":      e.GetMsg(e.Success),
+		"username": newUserName,
 	})
 }
