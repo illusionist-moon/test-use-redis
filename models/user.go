@@ -43,6 +43,16 @@ func GetUserInfoByEmail(db *gorm.DB, email string) (int, string, string, error) 
 	return user.ID, user.UserName, user.Password, nil
 }
 
+func GetUserNameByID(db *gorm.DB, id int) (string, error) {
+	var user User
+	// 按照 用户名 进行查找
+	err := db.Select("user_name").Where("id = ?", id).First(&user).Error
+	if err != nil {
+		return "", err
+	}
+	return user.UserName, nil
+}
+
 func CreateUser(db *gorm.DB, userName, email, password string) (int, error) {
 	user := &User{
 		UserName: userName,
@@ -83,4 +93,9 @@ func GetPointsRank(db *gorm.DB) ([]Rank, error) {
 		return nil, err
 	}
 	return res, nil
+}
+
+func UpdateUserName(db *gorm.DB, id int, newUserName string) error {
+	err := db.Model(&User{}).Where("id = ?", id).Update("user_name", newUserName).Error
+	return err
 }

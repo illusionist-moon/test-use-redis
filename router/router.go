@@ -38,6 +38,7 @@ func InitRouter() *gin.Engine {
 		authUser.GET("/points", api.GetUserPoints)
 
 		authUser.POST("/change-password", api.ChangePassword)
+		authUser.POST("/change-username", api.ChangeUserName)
 	}
 
 	return r

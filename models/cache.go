@@ -161,6 +161,7 @@ func GetPointsRankByIDFromRedis() ([]Rank, error) {
 func generateEmailVCodeKey(keyEmail string) string {
 	return fmt.Sprintf("vcode:%s", keyEmail)
 }
+
 func SaveVCodeInRedis(keyEmail, vCode string) error {
 	var err error
 	_, err = GetVCodeFromRedis(keyEmail)
@@ -177,4 +178,27 @@ func GetVCodeFromRedis(keyEmail string) (string, error) {
 		return "", err
 	}
 	return vCode, nil
+}
+
+func UpdateUserNameInZsetInRedis(userID int, oldUserName, newUserName string) error {
+	pointsInZset, err := GetPointsFromZsetInRedis(userID, oldUserName)
+	if err != nil {
+		return err
+	}
+	oldMemberByte, _ := json.Marshal(&UserInfo{
+		UserId:   userID,
+		UserName: oldUserName,
+	})
+	newMemberByte, _ := json.Marshal(&UserInfo{
+		UserId:   userID,
+		UserName: newUserName,
+	})
+	tx := Rdb.TxPipeline()
+	tx.ZRem(userPointsZset, util.Byte2Str(oldMemberByte))
+	tx.ZAdd(userPointsZset, redis.Z{
+		Score:  float64(pointsInZset),
+		Member: util.Byte2Str(newMemberByte),
+	})
+	_, err = tx.Exec()
+	return err
 }

@@ -39,20 +39,20 @@ func SendRegisterVCode(ctx *gin.Context) {
 	rnd := rand.New(rand.NewSource(time.Now().UnixNano()))
 	vCode := fmt.Sprintf("%06v", rnd.Int31n(1000000))
 
-	err := models.SaveVCodeInRedis(email, vCode)
-	if err != nil {
-		ctx.JSON(http.StatusOK, gin.H{
-			"code": e.Error,
-			"msg":  emailverify.ErrSend.Error(),
-		})
-		return
-	}
-
-	err = emailverify.SendRegisterEmail(email, vCode)
+	err := emailverify.SendRegisterEmail(email, vCode)
 	if err != nil {
 		ctx.JSON(http.StatusOK, gin.H{
 			"code": e.Error,
 			"msg":  err.Error(),
+		})
+		return
+	}
+
+	err = models.SaveVCodeInRedis(email, vCode)
+	if err != nil {
+		ctx.JSON(http.StatusOK, gin.H{
+			"code": e.Error,
+			"msg":  emailverify.ErrSend.Error(),
 		})
 		return
 	}
@@ -90,7 +90,7 @@ func Register(ctx *gin.Context) {
 	rePassword := ctx.PostForm("re-password")
 
 	verify := &validation.UserRegisterValidator{
-		UserName:          userName,
+		UserNameValidator: validation.UserNameValidator{UserName: userName},
 		PasswordValidator: validation.PasswordValidator{Password: password},
 		RePassword:        rePassword,
 	}
@@ -335,24 +335,23 @@ func GetPointsRank(ctx *gin.Context) {
 	}
 	userID := idVal.(int)
 
-	nameVal, exist := ctx.Get("username")
-	// 下面这种情况理论是不存在，但还是需要写出处理
-	if !exist {
-		ctx.JSON(http.StatusOK, gin.H{
-			"code": e.ErrorNotExistUser,
-			"data": nil,
-			"msg":  "用户获取出现问题",
-		})
-		return
-	}
-	userName := nameVal.(string)
-
 	var (
+		userName  string
 		rank      []models.Rank
 		ownPoints int
 		ownRank   int
 		err       error
 	)
+
+	userName, err = models.GetUserNameByID(models.DB, userID)
+	if err != nil {
+		ctx.JSON(http.StatusOK, gin.H{
+			"code": e.ErrorNotExistUser,
+			"data": nil,
+			"msg":  "用户名获取失败",
+		})
+		return
+	}
 
 	ownPoints, err = models.GetOwnPointsFromRedisWithSave(userID, userName)
 	if err != nil {
@@ -409,17 +408,15 @@ func GetUserPoints(ctx *gin.Context) {
 	}
 	userID := idVal.(int)
 
-	nameVal, exist := ctx.Get("username")
-	// 下面这种情况理论是不存在，但还是需要写出处理
-	if !exist {
+	userName, err := models.GetUserNameByID(models.DB, userID)
+	if err != nil {
 		ctx.JSON(http.StatusOK, gin.H{
 			"code": e.ErrorNotExistUser,
 			"data": nil,
-			"msg":  "用户获取出现问题",
+			"msg":  "用户名获取失败",
 		})
 		return
 	}
-	userName := nameVal.(string)
 
 	ownPoints, err := models.GetOwnPointsFromRedisWithSave(userID, userName)
 	if err != nil {
@@ -506,6 +503,67 @@ func ChangePassword(ctx *gin.Context) {
 		ctx.JSON(http.StatusOK, gin.H{
 			"code": e.Error,
 			"msg":  "更新新密码失败",
+		})
+		return
+	}
+
+	ctx.JSON(http.StatusOK, gin.H{
+		"code": e.Success,
+		"msg":  e.GetMsg(e.Success),
+	})
+}
+
+func ChangeUserName(ctx *gin.Context) {
+	idVal, exist := ctx.Get("userid")
+	// 下面这种情况理论是不存在，但还是需要写出处理
+	if !exist {
+		ctx.JSON(http.StatusOK, gin.H{
+			"code": e.ErrorNotExistUser,
+			"data": nil,
+			"msg":  "用户获取出现问题",
+		})
+		return
+	}
+	userID := idVal.(int)
+
+	userName, err := models.GetUserNameByID(models.DB, userID)
+	if err != nil {
+		ctx.JSON(http.StatusOK, gin.H{
+			"code": e.ErrorNotExistUser,
+			"data": nil,
+			"msg":  "用户名获取失败",
+		})
+		return
+	}
+
+	newUserName := ctx.PostForm("username")
+
+	verify := &validation.UserNameValidator{
+		UserName: newUserName,
+	}
+	if err := ctx.ShouldBind(verify); err != nil {
+		ctx.JSON(http.StatusOK, gin.H{
+			"code": e.InvalidParams,
+			"msg":  validation.GetValidMsg(err, verify),
+		})
+		return
+	}
+
+	err = models.UpdateUserName(models.DB, userID, newUserName)
+	if err != nil {
+		ctx.JSON(http.StatusOK, gin.H{
+			"code": e.Error,
+			"msg":  "更新用户名失败",
+		})
+		return
+	}
+
+	// 需要同步更新redis中的Zset，因为Zset中的member是由用户ID和用户名共同组成的
+	err = models.UpdateUserNameInZsetInRedis(userID, userName, newUserName)
+	if err != nil {
+		ctx.JSON(http.StatusOK, gin.H{
+			"code": e.Error,
+			"msg":  "更新用户名缓存失败",
 		})
 		return
 	}

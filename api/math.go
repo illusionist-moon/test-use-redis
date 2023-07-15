@@ -65,17 +65,15 @@ func JudgeQuestion(ctx *gin.Context) {
 	}
 	userID := idVal.(int)
 
-	val, exist := ctx.Get("username")
-	// 下面这种情况理论是不存在，但还是需要写出处理
-	if !exist {
+	userName, err := models.GetUserNameByID(models.DB, userID)
+	if err != nil {
 		ctx.JSON(http.StatusOK, gin.H{
 			"code": e.ErrorNotExistUser,
 			"data": nil,
-			"msg":  "用户获取出现问题",
+			"msg":  "用户名获取失败",
 		})
 		return
 	}
-	username := val.(string)
 
 	op, ok := ctx.GetPostForm("op")
 	if !ok {
@@ -134,10 +132,7 @@ func JudgeQuestion(ctx *gin.Context) {
 
 	// 开启一个事务，保证错题库的一致性
 	tx := models.DB.Begin()
-	var (
-		addPoints int
-		err       error
-	)
+	var addPoints int
 
 	for i := 0; i < question.Count; i++ {
 		correct := question.Judge(ansSlice[i], op)
@@ -156,7 +151,7 @@ func JudgeQuestion(ctx *gin.Context) {
 			}
 		}
 	}
-	err = models.IncreaseOwnPointsInRedis(userID, addPoints, username)
+	err = models.IncreaseOwnPointsInRedis(userID, addPoints, userName)
 	if err != nil {
 		tx.Rollback()
 		ctx.JSON(http.StatusOK, gin.H{
@@ -237,7 +232,7 @@ func GetWrongList(ctx *gin.Context) {
 }
 
 func GetRedoProblem(ctx *gin.Context) {
-	val, exist := ctx.Get("username")
+	idVal, exist := ctx.Get("userid")
 	// 下面这种情况理论是不存在，但还是需要写出处理
 	if !exist {
 		ctx.JSON(http.StatusOK, gin.H{
@@ -247,9 +242,9 @@ func GetRedoProblem(ctx *gin.Context) {
 		})
 		return
 	}
-	username := val.(string)
+	userID := idVal.(int)
 
-	res, err := models.GetRedoProblem(models.DB, username)
+	res, err := models.GetRedoProblem(models.DB, userID)
 	if err != nil {
 		ctx.JSON(http.StatusOK, gin.H{
 			"code": e.Error,

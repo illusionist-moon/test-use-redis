@@ -58,7 +58,7 @@ func GetWrongList(db *gorm.DB, userId int, page int) ([]WrongListItem, int64, er
 	return res, total, nil
 }
 
-func GetRedoProblem(db *gorm.DB, userId string) ([]RedoProblem, error) {
+func GetRedoProblem(db *gorm.DB, userId int) ([]RedoProblem, error) {
 	var res []RedoProblem
 	err := db.Model(&Problem{}).Omit("user_id", "wrong_ans").Where("user_id = ?", userId).Limit(RedoProblemCount).Find(&res).Error
 	if err != nil {

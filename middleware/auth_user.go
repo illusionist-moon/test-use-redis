@@ -27,7 +27,6 @@ func AuthUserCheck() gin.HandlerFunc {
 			return
 		}
 		ctx.Set("userid", userClaim.UserID)
-		ctx.Set("username", userClaim.UserName)
 		ctx.Set("email", userClaim.Email)
 		ctx.Next()
 	}
