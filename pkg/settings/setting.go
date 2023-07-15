@@ -12,7 +12,8 @@ var (
 
 	RunMode string
 
-	HttpPort     string
+	ServerIp     string
+	ServerPort   string
 	ReadTimeout  time.Duration
 	WriteTimeout time.Duration
 
@@ -87,7 +88,8 @@ func LoadServer() {
 	if err != nil {
 		log.Fatalf("fail to get section 'server': %v", err)
 	}
-	HttpPort = sec.Key("HTTP_PORT").String()
+	ServerIp = sec.Key("SERVER_IP").String()
+	ServerPort = sec.Key("SERVER_PORT").String()
 	ReadTimeout = time.Duration(sec.Key("READ_TIMEOUT").MustInt(60)) * time.Second
 	WriteTimeout = time.Duration(sec.Key("WRITE_TIMEOUT").MustInt(60)) * time.Second
 }

@@ -8,6 +8,7 @@ require (
 	github.com/go-playground/universal-translator v0.18.1
 	github.com/go-playground/validator/v10 v10.11.2
 	github.com/go-redis/redis v6.15.9+incompatible
+	github.com/unrolled/secure v1.13.0
 	golang.org/x/crypto v0.5.0
 	gopkg.in/gomail.v2 v2.0.0-20160411212932-81ebce5c23df
 	gopkg.in/ini.v1 v1.67.0
