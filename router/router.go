@@ -10,8 +10,8 @@ func InitRouter() *gin.Engine {
 	gin.SetMode(gin.ReleaseMode)
 	r := gin.Default()
 
-	//r.Use(middleware.TlsHandler(), middleware.Cors())
-	r.Use(middleware.Cors())
+	r.Use(middleware.TlsHandler(), middleware.Cors())
+	//r.Use(middleware.Cors())
 
 	// 公有方法
 	r.POST("/register", api.Register)
