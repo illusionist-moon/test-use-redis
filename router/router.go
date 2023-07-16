@@ -3,16 +3,15 @@ package router
 import (
 	"ChildrenMath/api"
 	"ChildrenMath/middleware"
-	"ChildrenMath/pkg/settings"
 	"github.com/gin-gonic/gin"
 )
 
 func InitRouter() *gin.Engine {
+	gin.SetMode(gin.ReleaseMode)
 	r := gin.Default()
+
 	//r.Use(middleware.TlsHandler(), middleware.Cors())
 	r.Use(middleware.Cors())
-
-	gin.SetMode(settings.RunMode)
 
 	// 公有方法
 	r.POST("/register", api.Register)
